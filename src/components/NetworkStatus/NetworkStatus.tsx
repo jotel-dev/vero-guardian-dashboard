@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, WifiOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const DEFAULT_RPC_ENDPOINT = 'https://soroban-testnet.stellar.org';
 const RPC_HEALTH_REQUEST_BODY = '{"jsonrpc":"2.0","id":1,"method":"getHealth"}';
@@ -49,25 +50,71 @@ const INITIAL_SNAPSHOT: RpcHealthSnapshot = {
 
 const STATUS_STYLES = {
   healthy: {
-    label: 'Healthy',
+    labelKey: 'network.healthy',
     icon: CheckCircle2,
     badge: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
     dot: 'bg-emerald-500',
   },
   degraded: {
-    label: 'Degraded',
+    labelKey: 'network.degraded',
     icon: Clock3,
     badge: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
     dot: 'bg-amber-500',
   },
   offline: {
-    label: 'Offline',
+    labelKey: 'network.offline',
     icon: WifiOff,
     badge: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400',
     dot: 'bg-red-500',
   },
 } as const;
 
+function translateNetworkMessage(
+  message: string,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  if (message === INITIAL_SNAPSHOT.message) {
+    return t('network.initialMessage');
+  }
+
+  if (message === 'RPC getHealth is responding normally') {
+    return t('network.normal');
+  }
+
+  if (message === 'RPC returned an invalid health response. Switch RPC endpoints if this continues.') {
+    return t('network.invalidJson');
+  }
+
+  if (message === 'RPC responded slowly. Network requests may take longer than expected.') {
+    return t('network.slow');
+  }
+
+  if (message === 'RPC health status unavailable. Switch RPC endpoints if this continues.') {
+    return t('network.unavailable');
+  }
+
+  if (message.startsWith('RPC returned HTTP ')) {
+    const status = message.match(/RPC returned HTTP (\d+)/)?.[1] ?? '';
+    return t('network.httpError', { status });
+  }
+
+  if (message.startsWith('RPC unreachable at ')) {
+    const endpoint = message
+      .replace('RPC unreachable at ', '')
+      .replace('. Check your network connection or switch RPC endpoints.', '');
+    return t('network.unreachable', { endpoint });
+  }
+
+  if (message.startsWith('RPC getHealth error: ')) {
+    return t('network.healthError', { message: message.replace('RPC getHealth error: ', '') });
+  }
+
+  if (message.startsWith('RPC reported ')) {
+    return t('network.reportedStatus', { status: message.replace('RPC reported ', '') });
+  }
+
+  return message;
+}
 
 export async function fetchRpcHealth(
   endpoint: string,
@@ -163,6 +210,7 @@ export async function fetchRpcHealth(
 }
 
 export default function NetworkStatus({ endpoint, fetcher = fetch, now = Date.now }: NetworkStatusProps) {
+  const { t } = useTranslation();
   const rpcEndpoint = endpoint ?? process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? DEFAULT_RPC_ENDPOINT;
   const [snapshot, setSnapshot] = useState<RpcHealthSnapshot>(INITIAL_SNAPSHOT);
   const latestCheckId = useRef(0);
@@ -204,7 +252,7 @@ export default function NetworkStatus({ endpoint, fetcher = fetch, now = Date.no
 
   return (
     <section
-      aria-label="Stellar RPC network status"
+      aria-label={t('network.ariaLabel')}
       aria-live="polite"
       role={snapshot.status === 'offline' ? 'alert' : 'status'}
       className="w-full rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900/60 md:max-w-2xl"
@@ -213,20 +261,20 @@ export default function NetworkStatus({ endpoint, fetcher = fetch, now = Date.no
         <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
-            <h2 className="font-semibold text-slate-900 dark:text-white">Stellar RPC status</h2>
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t('network.heading')}</h2>
           </div>
           <p className="font-mono text-xs text-slate-600 break-all dark:text-slate-400">{rpcEndpoint}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400">{snapshot.message}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{translateNetworkMessage(snapshot.message, t)}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 font-medium ${statusStyle.badge}`}>
             <span data-testid="rpc-status-dot" className={`h-2 w-2 rounded-full ${statusStyle.dot}`} aria-hidden="true" />
             <StatusIcon className="h-4 w-4" aria-hidden="true" />
-            {statusStyle.label}
+            {t(statusStyle.labelKey)}
           </span>
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-mono text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
-            {snapshot.latencyMs === null ? 'Latency —' : `${snapshot.latencyMs} ms`}
+            {snapshot.latencyMs === null ? t('network.latencyEmpty') : t('network.latency', { latency: snapshot.latencyMs })}
           </span>
         </div>
       </div>

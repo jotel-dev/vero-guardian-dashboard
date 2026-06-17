@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fetchPRMetadata } from '@/services/githubClient';
 
 interface AuditViewerProps {
@@ -16,6 +17,7 @@ interface PRData {
 }
 
 export const AuditViewer: React.FC<AuditViewerProps> = ({ prHash }) => {
+  const { t } = useTranslation();
   const [prData, setPrData] = useState<PRData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,34 +28,34 @@ export const AuditViewer: React.FC<AuditViewerProps> = ({ prHash }) => {
         const data = await fetchPRMetadata(prHash);
         setPrData(data);
       } catch (e: any) {
-        setError(e.message ?? 'Failed to load PR data');
+        setError(e.message ?? t('audit.failedLoad'));
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [prHash]);
+  }, [prHash, t]);
 
   if (loading) {
-    return <div className="text-gray-500">Loading PR information…</div>;
+    return <div className="text-gray-500">{t('audit.loading')}</div>;
   }
 
   if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
+    return <div className="text-red-600">{t('audit.error', { message: error })}</div>;
   }
 
   if (!prData) {
-    return <div className="text-gray-500">No PR data available.</div>;
+    return <div className="text-gray-500">{t('audit.unavailable')}</div>;
   }
 
   const isMatch = prData.hash.toLowerCase() === prHash.toLowerCase();
   const badgeColor = isMatch ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  const badgeLabel = isMatch ? 'Match' : 'Mismatch';
+  const badgeLabel = isMatch ? t('audit.match') : t('audit.mismatch');
 
   return (
     <div className="border rounded p-4 shadow-sm bg-white">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-medium">GitHub PR Audit</h3>
+        <h3 className="text-lg font-medium">{t('audit.heading')}</h3>
         <span className={`px-2 py-1 rounded ${badgeColor} text-sm font-semibold`}>{badgeLabel}</span>
       </div>
       <p className="text-sm font-semibold mb-1">
@@ -61,8 +63,8 @@ export const AuditViewer: React.FC<AuditViewerProps> = ({ prHash }) => {
           {prData.title}
         </a>
       </p>
-      <p className="text-xs text-gray-600">Author: {prData.author}</p>
-      <p className="text-xs text-gray-600 mt-1">Hash: {prData.hash}</p>
+      <p className="text-xs text-gray-600">{t('audit.author', { author: prData.author })}</p>
+      <p className="text-xs text-gray-600 mt-1">{t('audit.hash', { hash: prData.hash })}</p>
     </div>
   );
 };

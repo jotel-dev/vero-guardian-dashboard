@@ -1,10 +1,11 @@
 'use client';
 
 import { CheckCircle2, Clock, AlertCircle, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Task {
   id: string;
-  title: string;
+  titleKey: string;
   status: 'completed' | 'pending' | 'in-progress';
   reward: string;
   priority: 'high' | 'medium' | 'low';
@@ -13,21 +14,21 @@ interface Task {
 const mockTasks: Task[] = [
   {
     id: '1',
-    title: 'Verify multi-sig transaction security',
+    titleKey: 'tasks.verifyMultiSig',
     status: 'in-progress',
     reward: '50 VERO',
     priority: 'high',
   },
   {
     id: '2',
-    title: 'Audit gas optimization changes',
+    titleKey: 'tasks.auditGas',
     status: 'pending',
     reward: '35 VERO',
     priority: 'medium',
   },
   {
     id: '3',
-    title: 'Validate rate limiting implementation',
+    titleKey: 'tasks.validateRateLimit',
     status: 'completed',
     reward: '40 VERO',
     priority: 'high',
@@ -35,6 +36,8 @@ const mockTasks: Task[] = [
 ];
 
 export default function TaskCard() {
+  const { t } = useTranslation();
+
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
       case 'completed':
@@ -54,16 +57,24 @@ export default function TaskCard() {
     };
     return (
       <span className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${styles[priority]}`}>
-        {priority.toUpperCase()}
+        {t(`tasks.priority.${priority}`)}
       </span>
     );
+  };
+
+  const getStatusLabel = (status: Task['status']) => {
+    if (status === 'in-progress') {
+      return t('tasks.status.inProgress');
+    }
+
+    return t(`tasks.status.${status}`);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
         <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Guardian Tasks</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('tasks.heading')}</h2>
       </div>
 
       <div className="space-y-3">
@@ -77,11 +88,11 @@ export default function TaskCard() {
                 {getStatusIcon(task.status)}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-slate-900 dark:text-white">{task.title}</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">{t(task.titleKey)}</h3>
                     {getPriorityBadge(task.priority)}
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    Status:{' '}
+                    {t('common.status')}:{' '}
                     <span
                       className={`capitalize font-medium ${
                         task.status === 'completed'
@@ -91,7 +102,7 @@ export default function TaskCard() {
                           : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      {task.status}
+                      {getStatusLabel(task.status)}
                     </span>
                   </p>
                 </div>

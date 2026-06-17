@@ -2,8 +2,10 @@
 
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon, Laptop } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function ThemeToggle() {
+  const { t } = useTranslation();
   const { theme, setTheme, resolvedTheme, mounted } = useTheme();
 
   if (!mounted) {
@@ -32,7 +34,7 @@ export default function ThemeToggle() {
   };
 
   const getAriaLabel = () => {
-    return `Current theme is ${theme}. Click to change theme.`;
+    return t('theme.ariaLabel', { theme });
   };
 
   return (

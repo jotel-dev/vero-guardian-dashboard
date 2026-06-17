@@ -2,8 +2,10 @@
 
 import { useWallet } from '@/context/WalletContext';
 import { Wallet, LogOut, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function ConnectButton() {
+  const { t } = useTranslation();
   const { publicKey, isConnected, connect, disconnect, isLoading } = useWallet();
 
   function truncateAddress(address: string) {
@@ -15,10 +17,10 @@ export default function ConnectButton() {
       <button 
         disabled 
         className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-700 cursor-not-allowed"
-        aria-label="Connecting wallet..."
+        aria-label={t('wallet.connecting')}
       >
         <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-        <span>Loading...</span>
+        <span>{t('wallet.loading')}</span>
       </button>
     );
   }
@@ -32,7 +34,7 @@ export default function ConnectButton() {
         </div>
         <button
           onClick={disconnect}
-          aria-label="Disconnect wallet"
+          aria-label={t('wallet.disconnect')}
           className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <LogOut className="w-4 h-4" aria-hidden="true" />
@@ -47,7 +49,7 @@ export default function ConnectButton() {
       className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
     >
       <Wallet className="w-4 h-4" aria-hidden="true" />
-      <span>Connect Wallet</span>
+      <span>{t('wallet.connect')}</span>
     </button>
   );
 }

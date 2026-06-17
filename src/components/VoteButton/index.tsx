@@ -2,6 +2,8 @@
 
 import type { ReactElement } from 'react';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { castVote } from '@/services/contractClient';
 import { getStellarExplorerTxUrl } from '@/lib/stellar-expert';
 import { useToast } from '@/components/Toast';
@@ -53,20 +55,20 @@ function getVoteButtonState(
   return 'ready';
 }
 
-function getVoteAriaLabel(prId: number, state: VoteButtonState): string {
+function getVoteAriaLabel(prId: number, state: VoteButtonState, t: TFunction): string {
   switch (state) {
     case 'voted':
-      return `Voted for PR #${prId}`;
+      return t('vote.aria.voted', { prId });
     case 'signing':
-      return `Casting vote for PR #${prId}`;
+      return t('vote.aria.signing', { prId });
     case 'checking-access':
-      return `Checking vote access for PR #${prId}`;
+      return t('vote.aria.checkingAccess', { prId });
     case 'missing-wallet':
-      return `Connect wallet to vote for PR #${prId}`;
+      return t('vote.aria.missingWallet', { prId });
     case 'unauthorized':
-      return `Not authorized to vote for PR #${prId}`;
+      return t('vote.aria.unauthorized', { prId });
     default:
-      return `Vote for PR #${prId}`;
+      return t('vote.aria.ready', { prId });
   }
 }
 
@@ -85,22 +87,23 @@ function getVoteButtonClassName(state: VoteButtonState): string {
   }
 }
 
-function getVoteButtonText(state: VoteButtonState): string {
+function getVoteButtonText(state: VoteButtonState, t: TFunction): string {
   switch (state) {
     case 'voted':
-      return '✓ Voted';
+      return `✓ ${t('vote.voted')}`;
     case 'signing':
-      return 'Signing…';
+      return t('vote.signing');
     case 'checking-access':
-      return 'Checking…';
+      return t('vote.checking');
     case 'unauthorized':
-      return 'Unauthorized';
+      return t('vote.unauthorized');
     default:
-      return 'Vote';
+      return t('vote.vote');
   }
 }
 
 export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactElement {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [voted, setVoted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -121,12 +124,12 @@ export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactE
     }
 
     if (!publicKey) {
-      showToast('Connect your wallet first', 'warning');
+      showToast(t('vote.toast.connectWallet'), 'warning');
       return;
     }
 
     if (isRoleLoading || !canVote) {
-      showToast('Not an authorized Guardian', 'error');
+      showToast(t('vote.toast.notGuardian'), 'error');
       return;
     }
 
@@ -135,9 +138,9 @@ export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactE
       const hash = await castVote(prId, publicKey);
       setVoted(true);
       const explorerUrl = getStellarExplorerTxUrl(hash);
-showToast(`Vote recorded — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">tx ${hash.slice(0, 8)}…</a>`, 'success');
+showToast(`${t('vote.toast.recorded')} — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">tx ${hash.slice(0, 8)}…</a>`, 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Vote failed', 'error');
+      showToast(err instanceof Error ? err.message : t('vote.toast.failed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -147,10 +150,10 @@ showToast(`Vote recorded — <a href="${explorerUrl}" target="_blank" rel="noope
     <button
       onClick={handleVote}
       disabled={isDisabled}
-      aria-label={getVoteAriaLabel(prId, voteButtonState)}
+      aria-label={getVoteAriaLabel(prId, voteButtonState, t)}
       className={getVoteButtonClassName(voteButtonState)}
     >
-      {getVoteButtonText(voteButtonState)}
+      {getVoteButtonText(voteButtonState, t)}
     </button>
   );
 }

@@ -2,17 +2,19 @@
 
 import { useState } from 'react';
 import { Menu, X, Home, GitPullRequest, ShieldCheck, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ConnectButton from '@/components/ConnectButton';
 import { Shield } from 'lucide-react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', icon: Home, current: true },
-    { name: 'Validations', icon: GitPullRequest, current: false },
-    { name: 'Tasks', icon: ShieldCheck, current: false },
-    { name: 'Settings', icon: Settings, current: false },
+    { name: t('navigation.dashboard'), icon: Home, current: true },
+    { name: t('navigation.validations'), icon: GitPullRequest, current: false },
+    { name: t('navigation.tasks'), icon: ShieldCheck, current: false },
+    { name: t('navigation.settings'), icon: Settings, current: false },
   ];
 
   return (
