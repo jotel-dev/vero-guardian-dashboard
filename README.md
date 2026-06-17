@@ -96,7 +96,8 @@ Each Guardian's trust score is tracked as `vero_reputation` on their Stellar acc
               │     └── <VoteCard pr={...} />  # Per-PR card with guarded vote button
               ├── <AccessControl />          # Role-gated Admin vs Guardian UI
               ├── <ReputationBadge />        # Reads vero_reputation from Horizon
-              └── <Toast />                  # Success/error notifications
+              ├── <Toast />                  # Success/error notifications
+              └── <ErrorModal />             # Global, dismissible error dialog
 ```
 
 ---
@@ -206,6 +207,7 @@ vero-guardian-dashboard/
 │   │   ├── ConnectButton.tsx   # Freighter connect/disconnect
 │   │   ├── TaskCard.tsx        # Generic task display card
 │   │   ├── Toast.tsx           # Success/error notification toasts
+│   │   ├── ErrorModal.tsx      # Reusable global error modal + useError() hook
 │   │   └── ErrorBoundary.tsx   # React error boundary wrapper
 │   ├── context/
 │   │   └── WalletContext.tsx   # Global wallet state (publicKey)
@@ -534,6 +536,35 @@ Notes
 - If Freighter is not installed, `connect()` will set `error` to a helpful message.
 - Persisted wallet state is restored only after Freighter confirms the same current address.
 - Freighter wallet change listeners update or clear stored keys when the user switches accounts.
+
+### Error Modal
+
+`ErrorModal` provides a single, app-wide error dialog so error messaging stays consistent across the dashboard. The `ErrorProvider` is mounted once in the root layout, and any component can raise an error through the `useError()` hook — no need to wire up local modal state.
+
+```tsx
+import { useError } from '@/components/ErrorModal';
+
+export function VoteButton() {
+  const { showError } = useError();
+
+  async function handleVote() {
+    try {
+      await castVote();
+    } catch (err) {
+      showError({
+        title: 'Vote failed',
+        message: err instanceof Error ? err.message : 'Please try again.',
+        actionLabel: 'Retry',
+        onAction: handleVote,
+      });
+    }
+  }
+
+  return <button onClick={handleVote}>Vote</button>;
+}
+```
+
+`showError({ message })` is the only required field; `title` defaults to "Something went wrong". Passing `actionLabel`/`onAction` adds a primary action button (the action runs, then the modal closes). The modal is dismissible via its close button, the Cancel/Dismiss button, the backdrop, or the <kbd>Esc</kbd> key, and uses `role="alertdialog"` with labelled title/description for accessibility.
 
 ### Role Context
 

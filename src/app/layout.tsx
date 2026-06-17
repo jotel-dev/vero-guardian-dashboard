@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { WalletProvider } from '@/context/WalletContext';
 import { RoleProvider } from '@/context/RoleContext';
 import { ToastProvider } from '@/components/Toast';
+import { ErrorProvider } from '@/components/ErrorModal';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { I18nProvider } from '@/i18n';
 
