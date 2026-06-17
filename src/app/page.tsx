@@ -12,9 +12,11 @@ import { AccessControl } from '@/components/Guard';
 import LanguageToggle from '@/components/LanguageToggle';
 import NetworkStatus from '@/components/NetworkStatus';
 import PRFeed from '@/components/PRFeed';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 import SecurityScannerResults from '@/components/security';
 import TaskCard from '@/components/TaskCard';
 import ThemeToggle from '@/components/ThemeToggle';
+import TransactionFeed from '@/components/TransactionFeed';
 import Leaderboard from '@/components/leaderboard';
 import { useRole } from '@/context/RoleContext';
 import { useWallet } from '@/context/WalletContext';
@@ -113,6 +115,7 @@ export default function Home(): ReactElement {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <PushNotificationToggle />
               <LanguageToggle />
               <ThemeToggle />
               <ConnectButton />

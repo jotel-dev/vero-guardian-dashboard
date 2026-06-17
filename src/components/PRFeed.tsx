@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import VoteCard from '@/components/VoteCard';
 import { GitPullRequest, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useWallet } from '@/context/WalletContext';
 
 interface PR {
   id: number;
