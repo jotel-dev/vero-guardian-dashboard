@@ -94,6 +94,7 @@ Each Guardian's trust score is tracked as `vero_reputation` on their Stellar acc
               ├── <ConnectButton />          # Freighter wallet connect/disconnect
               ├── <PRFeed />                 # Fetches open PRs, renders list
               │     └── <VoteCard pr={...} />  # Per-PR card with guarded vote button
+              ├── <TransactionFeed />        # Live Horizon transaction stream
               ├── <AccessControl />          # Role-gated Admin vs Guardian UI
               ├── <ReputationBadge />        # Reads vero_reputation from Horizon
               ├── <Toast />                  # Success/error notifications
@@ -204,6 +205,7 @@ vero-guardian-dashboard/
 │   ├── components/
 │   │   ├── VoteCard.tsx        # PR card with vote button + state
 │   │   ├── PRFeed.tsx          # Scrollable PR list
+│   │   ├── TransactionFeed/    # Live Horizon transaction stream feed
 │   │   ├── ConnectButton.tsx   # Freighter connect/disconnect
 │   │   ├── TaskCard.tsx        # Generic task display card
 │   │   ├── Toast.tsx           # Success/error notification toasts
@@ -573,6 +575,28 @@ export function VoteButton() {
 Role data is read from `NEXT_PUBLIC_ROLE_REGISTRY_ACCOUNT` when configured; otherwise, the connected wallet account is inspected. Supported active role markers include `admin:<publicKey>`, `admin_<publicKey>`, `guardian:<publicKey>`, `guardian_<publicKey>`, and exact connected-account keys such as `admin`, `guardian`, or `role`.
 
 Use `AccessControl` to hide admin-only UI from Guardians and unauthorized wallets, and use `useRole()` to block direct UI handlers before invoking guarded actions.
+
+---
+
+### Live Transaction Feed
+
+`TransactionFeed` subscribes to Horizon's transaction stream (Server-Sent Events via `server.transactions().cursor('now').stream(...)`) and renders incoming network transactions in real time — newest first, capped at `MAX_FEED_ENTRIES` (25) and de-duplicated by transaction id. Each row links to the transaction on Stellar Expert, shows the source account, ledger sequence, operation count, and a success/failure indicator, with a live connection status badge.
+
+The stream source is injectable for testing and customization:
+
+```tsx
+import TransactionFeed, {
+  createHorizonTransactionStream,
+} from '@/components/TransactionFeed';
+
+// Default: live Horizon stream from NEXT_PUBLIC_HORIZON_URL (testnet fallback).
+<TransactionFeed />
+
+// Custom endpoint or a mock subscriber in tests.
+<TransactionFeed subscribe={createHorizonTransactionStream('https://horizon.stellar.org')} />
+```
+
+A `subscribe` prop receives `{ onMessage, onError }` and returns an unsubscribe function, so the component can be driven without a network connection in unit tests. The Horizon endpoint is read from `NEXT_PUBLIC_HORIZON_URL` (defaults to `https://horizon-testnet.stellar.org`).
 
 ---
 
