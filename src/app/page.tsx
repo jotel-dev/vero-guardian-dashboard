@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { Activity, ArrowRight, CheckCircle2, Code2, Shield, Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ConnectButton from '@/components/ConnectButton';
+import AuditSessionTimer from '@/components/AuditSessionTimer';
 import ContractTimeTraveler from '@/components/ContractTimeTraveler';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ForceSyncButton from '@/components/ForceSyncButton';
@@ -198,6 +199,12 @@ export default function Home(): ReactElement {
             <ErrorBoundary>
               <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-lg">
                 <ContractTimeTraveler />
+              </div>
+            </ErrorBoundary>
+
+            <ErrorBoundary>
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-lg">
+                <AuditSessionTimer />
               </div>
             </ErrorBoundary>
 
