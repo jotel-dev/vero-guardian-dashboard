@@ -269,6 +269,13 @@ export default function Home(): ReactElement {
             <GasHeatmap />
           </ErrorBoundary>
         </div>
+
+        {/* Contract Call Graph */}
+        <div className="mt-6">
+          <ErrorBoundary>
+            <ContractCallGraph />
+          </ErrorBoundary>
+        </div>
       </main>
 
       {/* Footer */}
