@@ -229,6 +229,15 @@ export const resources = {
         tasks: 'Tasks',
         settings: 'Settings',
       },
+      voteProgressBar: {
+        ariaLabel: 'Vote progress: {{approveCount}} approve, {{rejectCount}} reject',
+        approve: 'Approve',
+        reject: 'Reject',
+        tooltipVotes_one: '{{count}} vote',
+        tooltipVotes_other: '{{count}} votes',
+        quorumReached: 'Quorum reached',
+        quorumNeeded: '{{needed}} more approve vote(s) needed to reach quorum of {{quorum}}',
+      },
       contractCallGraph: {
         heading: 'Contract Call Graph',
         subheading: 'Function call relationships across the Vero contract',
@@ -470,6 +479,15 @@ export const resources = {
         tasks: 'Tareas',
         settings: 'Configuracion',
       },
+      voteProgressBar: {
+        ariaLabel: 'Progreso de votos: {{approveCount}} aprobados, {{rejectCount}} rechazados',
+        approve: 'Aprobar',
+        reject: 'Rechazar',
+        tooltipVotes_one: '{{count}} voto',
+        tooltipVotes_other: '{{count}} votos',
+        quorumReached: 'Quorum alcanzado',
+        quorumNeeded: 'Se necesitan {{needed}} voto(s) de aprobacion mas para alcanzar el quorum de {{quorum}}',
+      },
       contractCallGraph: {
         heading: 'Grafo de llamadas del contrato',
         subheading: 'Relaciones de llamadas entre funciones del contrato Vero',
@@ -710,6 +728,15 @@ export const resources = {
         validations: 'Validations',
         tasks: 'Taches',
         settings: 'Parametres',
+      },
+      voteProgressBar: {
+        ariaLabel: 'Progression des votes : {{approveCount}} approbations, {{rejectCount}} rejets',
+        approve: 'Approuver',
+        reject: 'Rejeter',
+        tooltipVotes_one: '{{count}} vote',
+        tooltipVotes_other: '{{count}} votes',
+        quorumReached: 'Quorum atteint',
+        quorumNeeded: '{{needed}} vote(s) d approbation supplementaire(s) necessaire(s) pour atteindre le quorum de {{quorum}}',
       },
       contractCallGraph: {
         heading: 'Graphe d appels du contrat',
