@@ -23,6 +23,7 @@ import TransactionFeed from '@/components/TransactionFeed';
 import Leaderboard from '@/components/leaderboard';
 import { useRole } from '@/context/RoleContext';
 import { useWallet } from '@/context/WalletContext';
+import { AlertBanner } from '@/components/AlertBanner';
 import type { UserRole } from '@/services/roleClient';
 
 function getRoleLabel(role: UserRole, isLoading: boolean, t: TFunction): string {
@@ -127,6 +128,8 @@ export default function Home(): ReactElement {
           </div>
         </div>
       </header>
+
+      <AlertBanner />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
