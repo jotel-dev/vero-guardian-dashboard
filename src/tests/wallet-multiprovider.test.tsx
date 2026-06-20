@@ -9,6 +9,17 @@ jest.mock('@stellar/freighter-api', () => ({
   WatchWalletChanges: jest.fn(),
   getPublicKey: jest.fn(),
 }));
+jest.mock('@/lib/stellar-interact', () => ({
+  getReputation: jest.fn(async () => 0),
+}));
+jest.mock('@/hooks/useChainState', () => ({
+  useChainState: () => ({
+    forceSync: jest.fn(),
+    isSyncing: false,
+    status: 'idle',
+    syncVersion: 0,
+  }),
+}));
 
 const RABET_KEY = 'GRABET3XVCDTUJ76ZAV2HA72KYXY5YOFZ3F5YMQABR6J32F2TQPWQABCD';
 const STORAGE_KEY = 'vero_wallet_publicKey';

@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -20,6 +21,8 @@ import {
   type WalletProviderId,
   type WalletProviderInfo,
 } from '@/lib/wallets';
+import { getReputation } from '@/lib/stellar-interact';
+import { useChainState } from '@/hooks/useChainState';
 
 const STORAGE_KEY = 'vero_wallet_publicKey';
 const PROVIDER_STORAGE_KEY = 'vero_wallet_provider';
@@ -64,6 +67,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [reputation, setReputation] = useState(0);
   const [activeProvider, setActiveProvider] = useState<WalletProviderId | null>(null);
   const [availableProviders, setAvailableProviders] = useState<WalletProviderInfo[]>([]);
+  const reputationRequestIdRef = useRef(0);
+  const { syncVersion: accountSyncVersion } = useChainState({
+    cacheKeys: publicKey ? [`account:${publicKey}`, `reputation:${publicKey}`] : ['wallet'],
+  });
 
   // Detect installed wallet extensions once on the client.
   useEffect(() => {
@@ -166,6 +173,40 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isMounted = false;
     };
   }, [applyVerifiedPublicKey, clearWalletState]);
+
+  useEffect(() => {
+    const requestId = reputationRequestIdRef.current + 1;
+    reputationRequestIdRef.current = requestId;
+
+    if (!publicKey) {
+      setReputation(0);
+      return;
+    }
+
+    const currentPublicKey = publicKey;
+
+    async function refreshReputation() {
+      try {
+        const nextReputation = await getReputation(currentPublicKey);
+        if (reputationRequestIdRef.current === requestId) {
+          setReputation(nextReputation);
+        }
+      } catch (reputationError) {
+        if (reputationRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        console.error('Failed to refresh on-chain reputation:', reputationError);
+        setReputation(0);
+      }
+    }
+
+    void refreshReputation();
+
+    return () => {
+      reputationRequestIdRef.current += 1;
+    };
+  }, [accountSyncVersion, publicKey]);
 
   useEffect(() => {
     const handleAccountChange = () => {

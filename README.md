@@ -24,6 +24,7 @@ Guardians connect their [Freighter](https://www.freighter.app/) wallet, browse t
   - [Security Scanner Results](#security-scanner-results)
   - [Guardian Reputation](#guardian-reputation)
   - [Wallet Context](#wallet-context)
+  - [Local Audit Log Export](#local-audit-log-export)
   - [Webhook Relayer](#webhook-relayer)
 - [API Reference](#api-reference)
 - [Testing](#testing)
@@ -447,6 +448,20 @@ console.log(result.hash);
 
 For custom signing flows, call `buildBatchTransaction()` to get an unsigned envelope XDR, pass that XDR to the existing wallet signing flow, then submit with `broadcastSignedBatchTransaction()`. The builder only caches non-sensitive sequence metadata after successful submissions and invalidates that cache if Horizon returns `tx_bad_seq`.
 
+#### Builder UI
+
+`src/components/BatchTxBuilder` is the Guardian-facing interface for that engine. Operations are composed and edited entirely in local React state — add vote, manage-data, or native payment operations, reorder them to control execution order, and remove any before submitting — so the batch can be assembled with no network round-trips. Each draft is validated as it is entered (PR numbers, data-name byte limits, Stellar destination addresses, and amounts) and is only converted into a `StellarOperation` at build time, so a malformed operation can never reach signing.
+
+```tsx
+import BatchTxBuilder from '@/components/BatchTxBuilder';
+
+// Reads the connected key from WalletContext and broadcasts through
+// the shared batch transaction builder in a single wallet approval.
+<BatchTxBuilder />
+```
+
+Pressing **Build & broadcast** maps the queue to ordered operations and calls `signAndBroadcastBatchTransaction()`, so the whole batch is signed and submitted as one transaction. A `broadcaster` prop can be supplied to inject a custom builder (used in tests). No private keys are handled, requested, logged, or stored.
+
 ---
 
 ### Security Scanner Results
@@ -660,6 +675,17 @@ A `subscribe` prop receives `{ onMessage, onError }` and returns an unsubscribe 
 
 ---
 
+### Local Audit Log Export
+
+`src/utils/logger.ts` preserves meaningful audit activity outside React component state. `TransactionFeed` appends each unique streamed Horizon transaction, and `VoteButton` records vote submission success or failure. The public API includes `createAuditLogger`, `appendAuditEvent`, `flushAuditLogs`, `exportAuditLogs`, `readEncryptedAuditLogs`, `readAuditLogEvents`, `verifyAuditLogIntegrity`, `clearAuditLogs`, and `parseEncryptedAuditExport`.
+
+Audit events use safe fields: `id`, ISO `timestamp`, `type`, `actor`, `action`, `resource`, `resourceId`, `status`, sanitized `metadata`, `requestId`, and monotonic local `sequence`. Metadata is treated as untrusted: keys such as `privateKey`, `secretKey`, `seed`, `seedPhrase`, `mnemonic`, `password`, `token`, `accessToken`, `refreshToken`, `authorization`, `apiKey`, and `secret` are redacted; circular values, functions, class instances, and oversized nested values are bounded before logging.
+
+Logs are buffered in memory and flushed in batches to encrypted local records. Each record is encrypted with Web Crypto `AES-GCM` and a fresh random IV before persistence. The logger stores encrypted records and a manifest in `localStorage`, capped to a bounded retained window to avoid unbounded growth. A non-extractable AES key is stored in IndexedDB when the browser allows it; if IndexedDB key storage is unavailable, the logger falls back to a session-only key, meaning encrypted records remain persisted but may not be decryptable after the tab closes.
+
+Integrity is tamper-evident, not tamper-proof. Each encrypted record is linked with a SHA-256 hash chain (`previousHash` and `hash`), and exports include a SHA-256 digest over the retained record hashes. `verifyAuditLogIntegrity()` detects modified encrypted payloads, reordered records, broken links, and manifest mismatches where retained metadata is available.
+
+`exportAuditLogs()` creates `audit-log-YYYY-MM-DD.json.enc`. If the File System Access API is available, the browser can prompt for a save location; otherwise the logger falls back to a downloadable encrypted Blob. Browsers do not allow silent continuous writes to arbitrary local files, so the dashboard preserves encrypted local records continuously and uses explicit user-triggered export for local files.
 ### Gas Usage Heatmap
 
 `GasHeatmap` visualizes Soroban resource cost per contract function so gas spikes become obvious at a glance. Functions are rows; resource categories (CPU instructions, memory, ledger reads, ledger writes, events) are columns. Each cell is colored with a D3 sequential scale (`d3-scale-chromatic`'s `interpolateYlOrRd`) and positioned with `d3-scale`'s `scaleBand`. Color **intensity is normalized per metric column**, so the most expensive function for each resource stands out, and those cells are flagged as **hotspots** (also summarized below the grid) — satisfying "hotspots identified".

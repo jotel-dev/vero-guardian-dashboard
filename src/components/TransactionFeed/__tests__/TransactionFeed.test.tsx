@@ -9,6 +9,15 @@ import TransactionFeed, {
   type TransactionStreamSubscriber,
 } from '../TransactionFeed';
 
+jest.mock('@/hooks/useChainState', () => ({
+  useChainState: () => ({
+    forceSync: async () => undefined,
+    isSyncing: false,
+    status: 'idle',
+    syncVersion: 0,
+  }),
+}));
+
 function makeRecord(overrides: Partial<HorizonTransactionRecord> = {}): HorizonTransactionRecord {
   return {
     id: 'tx-1',
@@ -29,11 +38,12 @@ function makeRecord(overrides: Partial<HorizonTransactionRecord> = {}): HorizonT
 function createControllableSubscriber() {
   const handlersRef: { current: TransactionStreamHandlers | null } = { current: null };
   const unsubscribe = jest.fn();
+  const auditAppender = jest.fn(() => Promise.resolve());
   const subscribe: TransactionStreamSubscriber = (handlers) => {
     handlersRef.current = handlers;
     return unsubscribe;
   };
-  return { subscribe, handlersRef, unsubscribe };
+  return { subscribe, handlersRef, unsubscribe, auditAppender };
 }
 
 function feedTx(overrides: Partial<FeedTransaction> = {}): FeedTransaction {
@@ -81,12 +91,12 @@ describe('truncateMiddle', () => {
 
 describe('TransactionFeed', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   test('renders the heading and an empty listening state, going live on subscribe', () => {
-    const { subscribe } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     expect(screen.getByText('Live Transactions')).toBeTruthy();
     expect(screen.getByText('Listening for new transactions...')).toBeTruthy();
@@ -94,8 +104,8 @@ describe('TransactionFeed', () => {
   });
 
   test('renders a streamed transaction with an explorer link, ledger and op count', () => {
-    const { subscribe, handlersRef } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, handlersRef, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     act(() => {
       handlersRef.current?.onMessage(feedTx());
@@ -109,11 +119,21 @@ describe('TransactionFeed', () => {
     expect(screen.getByText('aaaaaa…aaaaaa')).toBeTruthy();
     expect(screen.getByText('Ledger 1234')).toBeTruthy();
     expect(screen.getByText('2 ops')).toBeTruthy();
+    expect(auditAppender).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'stellar-tx-tx-1',
+        type: 'transaction.stream',
+        action: 'horizon_transaction_observed',
+        resource: 'stellar.transaction',
+        resourceId: 'a'.repeat(64),
+        status: 'success',
+      }),
+    );
   });
 
   test('prepends newest transactions and caps the feed at maxEntries', () => {
-    const { subscribe, handlersRef } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} maxEntries={3} />);
+    const { subscribe, handlersRef, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} maxEntries={3} auditAppender={auditAppender} />);
 
     act(() => {
       for (let i = 1; i <= 5; i += 1) {
@@ -128,8 +148,8 @@ describe('TransactionFeed', () => {
   });
 
   test('ignores duplicate transaction ids', () => {
-    const { subscribe, handlersRef } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, handlersRef, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     act(() => {
       handlersRef.current?.onMessage(feedTx({ id: 'dup' }));
@@ -137,11 +157,12 @@ describe('TransactionFeed', () => {
     });
 
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(auditAppender).toHaveBeenCalledTimes(1);
   });
 
   test('shows a failed icon label for unsuccessful transactions', () => {
-    const { subscribe, handlersRef } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, handlersRef, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     act(() => {
       handlersRef.current?.onMessage(feedTx({ successful: false }));
@@ -152,8 +173,8 @@ describe('TransactionFeed', () => {
 
   test('surfaces a disconnected status and message on stream error', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const { subscribe, handlersRef } = createControllableSubscriber();
-    render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, handlersRef, auditAppender } = createControllableSubscriber();
+    render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     act(() => {
       handlersRef.current?.onError(new Error('stream dropped'));
@@ -164,11 +185,12 @@ describe('TransactionFeed', () => {
       screen.getByText('Live feed disconnected. A page refresh may be required to reconnect.'),
     ).toBeTruthy();
     expect(errorSpy).toHaveBeenCalledWith('Transaction feed stream error', expect.any(Error));
+    errorSpy.mockRestore();
   });
 
   test('unsubscribes from the stream on unmount', () => {
-    const { subscribe, unsubscribe } = createControllableSubscriber();
-    const { unmount } = render(<TransactionFeed subscribe={subscribe} />);
+    const { subscribe, unsubscribe, auditAppender } = createControllableSubscriber();
+    const { unmount } = render(<TransactionFeed subscribe={subscribe} auditAppender={auditAppender} />);
 
     expect(unsubscribe).not.toHaveBeenCalled();
     unmount();

@@ -8,6 +8,9 @@ import { castVote } from '@/services/contractClient';
 import { getStellarExplorerTxUrl } from '@/lib/stellar-expert';
 import { useToast } from '@/components/Toast';
 import { useRole } from '@/context/RoleContext';
+import { useNetwork } from '@/context/NetworkContext';
+import { useChainState } from '@/hooks/useChainState';
+import { appendAuditEvent } from '@/utils/logger';
 
 interface VoteButtonProps {
   prId: number;
@@ -108,6 +111,12 @@ export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactE
   const [voted, setVoted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { canVote, isLoading: isRoleLoading } = useRole();
+  const { networkConfig } = useNetwork();
+  const { forceSync } = useChainState({
+    cacheKeys: publicKey
+      ? ['dashboard', 'prs', 'transactions', `account:${publicKey}`, `reputation:${publicKey}`]
+      : ['dashboard', 'prs', 'transactions'],
+  });
   const hasPublicKey = Boolean(publicKey);
   const voteButtonState = getVoteButtonState(
     voted,
@@ -135,12 +144,45 @@ export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactE
 
     setLoading(true);
     try {
-      const hash = await castVote(prId, publicKey);
+      const hash = await castVote(
+        prId,
+        publicKey,
+        networkConfig.horizonUrl,
+        networkConfig.networkPassphrase
+      );
       setVoted(true);
+      void appendAuditEvent({
+        id: `vote-${prId}-${hash}`,
+        type: 'guardian.vote',
+        actor: publicKey,
+        action: 'vote_submitted',
+        resource: 'pull_request',
+        resourceId: prId,
+        status: 'success',
+        metadata: {
+          transactionHash: hash,
+        },
+      }).catch((error) => {
+        console.error('Unable to append vote audit log', error);
+      });
       const explorerUrl = getStellarExplorerTxUrl(hash);
-showToast(`${t('vote.toast.recorded')} — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">tx ${hash.slice(0, 8)}…</a>`, 'success');
+      showToast(`${t('vote.toast.recorded')} — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">tx ${hash.slice(0, 8)}…</a>`, 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('vote.toast.failed'), 'error');
+      const message = err instanceof Error ? err.message : t('vote.toast.failed');
+      void appendAuditEvent({
+        type: 'guardian.vote',
+        actor: publicKey,
+        action: 'vote_failed',
+        resource: 'pull_request',
+        resourceId: prId,
+        status: 'failure',
+        metadata: {
+          error: message,
+        },
+      }).catch((error) => {
+        console.error('Unable to append failed vote audit log', error);
+      });
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }

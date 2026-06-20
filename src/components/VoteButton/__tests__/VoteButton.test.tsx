@@ -3,6 +3,9 @@ import VoteButton from '@/components/VoteButton';
 import { castVote } from '@/services/contractClient';
 import { useRole } from '@/context/RoleContext';
 import { useToast } from '@/components/Toast';
+import { appendAuditEvent } from '@/utils/logger';
+
+const mockForceSync = jest.fn();
 
 jest.mock('@/services/contractClient', () => ({
   castVote: jest.fn(),
@@ -11,10 +14,14 @@ jest.mock('@/context/RoleContext', () => ({
   useRole: jest.fn(),
 }));
 jest.mock('@/components/Toast');
+jest.mock('@/utils/logger', () => ({
+  appendAuditEvent: jest.fn(() => Promise.resolve()),
+}));
 
 const mockCastVote = castVote as jest.MockedFunction<typeof castVote>;
 const mockUseRole = useRole as jest.MockedFunction<typeof useRole>;
 const mockUseToast = useToast as jest.MockedFunction<typeof useToast>;
+const mockAppendAuditEvent = appendAuditEvent as jest.MockedFunction<typeof appendAuditEvent>;
 const mockShowToast = jest.fn();
 const mockRefreshRole = jest.fn();
 
@@ -43,6 +50,7 @@ beforeEach(() => {
   mockUseToast.mockReturnValue({ showToast: mockShowToast });
   mockRole();
   mockCastVote.mockResolvedValue('deafhash');
+  mockForceSync.mockResolvedValue(undefined);
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -62,6 +70,16 @@ describe('VoteButton', () => {
     fireEvent.click(button);
 
     await waitFor(() => expect(mockCastVote).toHaveBeenCalledWith(42, 'GPUBKEY'));
+    await waitFor(() =>
+      expect(mockAppendAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'vote-42-deafhash',
+          type: 'guardian.vote',
+          action: 'vote_submitted',
+          status: 'success',
+        }),
+      ),
+    );
   });
 
   it('is disabled when no wallet is connected', () => {
@@ -108,5 +126,12 @@ describe('VoteButton', () => {
     fireEvent.click(button);
 
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Horizon error', 'error'));
+    expect(mockAppendAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'guardian.vote',
+        action: 'vote_failed',
+        status: 'failure',
+      }),
+    );
   });
 });

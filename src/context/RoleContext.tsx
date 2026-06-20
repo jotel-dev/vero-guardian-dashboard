@@ -12,6 +12,8 @@ import {
 } from 'react';
 
 import { useWallet } from '@/context/WalletContext';
+import { useNetwork } from '@/context/NetworkContext';
+import { useChainState } from '@/hooks/useChainState';
 import { fetchUserRole, type UserRole } from '@/services/roleClient';
 
 interface RoleContextValue {
@@ -37,10 +39,14 @@ function getRoleErrorMessage(error: unknown): string {
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { publicKey, isLoading: isWalletLoading } = useWallet();
+  const { networkConfig } = useNetwork();
   const [role, setRole] = useState<UserRole>('unauthorized');
   const [isRoleLoading, setIsRoleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const { syncVersion: roleSyncVersion } = useChainState({
+    cacheKeys: publicKey ? [`account:${publicKey}`, `role:${publicKey}`] : ['role'],
+  });
 
   const refreshRole = useCallback(async () => {
     const requestId = requestIdRef.current + 1;
@@ -57,7 +63,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const nextRole = await fetchUserRole(publicKey);
+      const nextRole = await fetchUserRole(publicKey, networkConfig.horizonUrl);
       if (requestIdRef.current !== requestId) {
         return;
       }
@@ -75,7 +81,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         setIsRoleLoading(false);
       }
     }
-  }, [publicKey]);
+  }, [publicKey, networkConfig.horizonUrl]);
 
   useEffect(() => {
     void refreshRole();
@@ -83,7 +89,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return () => {
       requestIdRef.current += 1;
     };
-  }, [refreshRole]);
+  }, [refreshRole, roleSyncVersion]);
 
   const value = useMemo<RoleContextValue>(() => {
     const isAdmin = role === 'admin';

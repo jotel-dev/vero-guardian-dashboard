@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { CheckCircle2, ExternalLink, Radio, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { getStellarExplorerTxUrl } from '@/lib/stellar-expert';
-
-const DEFAULT_HORIZON_URL =
-  process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org';
+import { appendAuditEvent, type AuditLogEventInput } from '@/utils/logger';
+import { useNetwork } from '@/context/NetworkContext';
+import { DEFAULT_HORIZON_URL } from '@/services/rpc';
 
 /** Maximum number of transactions retained in the feed at once. */
 export const MAX_FEED_ENTRIES = 25;
@@ -113,23 +113,29 @@ interface TransactionFeedProps {
   subscribe?: TransactionStreamSubscriber;
   /** Maximum number of transactions kept in the feed. */
   maxEntries?: number;
+  /** Audit sink. Defaults to the encrypted local audit logger. */
+  auditAppender?: (event: AuditLogEventInput) => Promise<unknown>;
 }
 
 export default function TransactionFeed({
   subscribe,
   maxEntries = MAX_FEED_ENTRIES,
+  auditAppender = appendAuditEvent,
 }: TransactionFeedProps = {}): ReactElement {
   const { t } = useTranslation();
+  const { networkConfig } = useNetwork();
   const [transactions, setTransactions] = useState<FeedTransaction[]>([]);
   const [status, setStatus] = useState<FeedConnectionStatus>('connecting');
+  const seenTransactionIds = useRef<Set<string>>(new Set());
 
   const subscriber = useMemo<TransactionStreamSubscriber>(
-    () => subscribe ?? createHorizonTransactionStream(),
-    [subscribe],
+    () => subscribe ?? createHorizonTransactionStream(networkConfig.horizonUrl),
+    [subscribe, networkConfig.horizonUrl],
   );
 
   useEffect(() => {
     let active = true;
+    seenTransactionIds.current = new Set();
     setStatus('connecting');
     setTransactions([]);
 
@@ -137,12 +143,29 @@ export default function TransactionFeed({
       onMessage: (transaction) => {
         if (!active) return;
         setStatus('live');
-        setTransactions((previous) => {
-          if (previous.some((entry) => entry.id === transaction.id)) {
-            return previous;
-          }
-          return [transaction, ...previous].slice(0, maxEntries);
+        if (seenTransactionIds.current.has(transaction.id)) {
+          return;
+        }
+
+        seenTransactionIds.current.add(transaction.id);
+        void auditAppender({
+          id: `stellar-tx-${transaction.id}`,
+          timestamp: transaction.createdAt,
+          type: 'transaction.stream',
+          actor: transaction.sourceAccount,
+          action: 'horizon_transaction_observed',
+          resource: 'stellar.transaction',
+          resourceId: transaction.hash,
+          requestId: transaction.id,
+          status: transaction.successful ? 'success' : 'failure',
+          metadata: {
+            ledger: transaction.ledger,
+            operationCount: transaction.operationCount,
+          },
+        }).catch((error) => {
+          console.error('Unable to append transaction audit log', error);
         });
+        setTransactions((previous) => [transaction, ...previous].slice(0, maxEntries));
       },
       onError: (error) => {
         if (!active) return;
@@ -160,7 +183,7 @@ export default function TransactionFeed({
       active = false;
       unsubscribe();
     };
-  }, [subscriber, maxEntries]);
+  }, [auditAppender, subscriber, maxEntries]);
 
   const statusStyle = STATUS_STYLES[status];
 

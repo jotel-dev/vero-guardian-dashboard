@@ -4,10 +4,12 @@ import { Inter } from 'next/font/google';
 import type { ReactElement, ReactNode } from 'react';
 import { WalletProvider } from '@/context/WalletContext';
 import { RoleProvider } from '@/context/RoleContext';
+import { AlertProvider } from '@/context/AlertContext';
 import { ToastProvider } from '@/components/Toast';
 import { ErrorProvider } from '@/components/ErrorModal';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { I18nProvider } from '@/i18n';
+import { NetworkProvider } from '@/context/NetworkContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,15 +27,17 @@ export default function RootLayout({ children }: RootLayoutProps): ReactElement 
     <html lang="en" className={inter.className}>
       <body className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
         <I18nProvider>
-          <ThemeProvider>
-            <WalletProvider>
-              <RoleProvider>
-                <ToastProvider>
-                  {children}
-                </ToastProvider>
-              </RoleProvider>
-            </WalletProvider>
-          </ThemeProvider>
+          <AlertProvider>
+            <ThemeProvider>
+              <WalletProvider>
+                <RoleProvider>
+                  <ToastProvider>
+                    {children}
+                  </ToastProvider>
+                </RoleProvider>
+              </WalletProvider>
+            </ThemeProvider>
+          </AlertProvider>
         </I18nProvider>
       </body>
     </html>
