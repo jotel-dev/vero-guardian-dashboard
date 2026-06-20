@@ -76,11 +76,11 @@ export async function haltContract(
     .build();
 
   const simulation = await server.simulateTransaction(rawTx);
-  if (StellarSdk.SorobanRpc.isSimulationError(simulation)) {
+  if ('error' in simulation) {
     throw new Error(simulation.error);
   }
 
-  const preparedTx = StellarSdk.SorobanRpc.assembleTransaction(rawTx, simulation);
+  const preparedTx = StellarSdk.SorobanRpc.assembleTransaction(rawTx, simulation) as any;
 
   const signed = await signTransaction(preparedTx.toXDR(), {
     networkPassphrase,
@@ -96,8 +96,8 @@ export async function haltContract(
   );
 
   const result = await server.sendTransaction(signedTx);
-  if (result.error) {
-    throw new Error(result.error);
+  if (result.status === 'ERROR') {
+    throw new Error('Transaction submission failed with status ERROR');
   }
 
   return result.hash;

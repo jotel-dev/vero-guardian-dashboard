@@ -152,7 +152,7 @@ export const NODE_COLORS: Record<CallGraphNode['kind'], { bg: string; border: st
 };
 
 /** Build a Cytoscape stylesheet array for the call graph. */
-export function buildStylesheet(): cytoscape.Stylesheet[] {
+export function buildStylesheet(): any[] {
   return [
     {
       selector: 'node',
@@ -170,7 +170,7 @@ export function buildStylesheet(): cytoscape.Stylesheet[] {
         'color': '#ffffff',
         'text-wrap': 'wrap',
         'text-max-width': '120px',
-      } as cytoscape.NodeSingular['style'],
+      } as any,
     },
     // Per-kind node colours
     ...(['entry', 'internal', 'external', 'event'] as CallGraphNode['kind'][]).map((kind) => ({
@@ -178,7 +178,7 @@ export function buildStylesheet(): cytoscape.Stylesheet[] {
       style: {
         'background-color': NODE_COLORS[kind].bg,
         'border-color': NODE_COLORS[kind].border,
-      } as cytoscape.NodeSingular['style'],
+      } as any,
     })),
     // Selected node highlight
     {
@@ -189,7 +189,7 @@ export function buildStylesheet(): cytoscape.Stylesheet[] {
         'overlay-color': '#6366f1',
         'overlay-padding': '4px',
         'overlay-opacity': 0.2,
-      } as cytoscape.NodeSingular['style'],
+      } as any,
     },
     // Edges
     {
@@ -206,7 +206,7 @@ export function buildStylesheet(): cytoscape.Stylesheet[] {
         'text-background-color': '#f8fafc',
         'text-background-opacity': 0.8,
         'text-background-padding': '2px',
-      } as cytoscape.EdgeSingular['style'],
+      } as any,
     },
     // Conditional edges — dashed
     {
@@ -214,21 +214,21 @@ export function buildStylesheet(): cytoscape.Stylesheet[] {
       style: {
         'line-style': 'dashed',
         'line-dash-pattern': [6, 3],
-      } as cytoscape.EdgeSingular['style'],
+      } as any,
     },
     // Dimmed state when a neighbour is focused
     {
       selector: '.dimmed',
       style: {
         'opacity': 0.2,
-      } as cytoscape.NodeSingular['style'],
+      } as any,
     },
     {
       selector: '.highlighted',
       style: {
         'border-width': 3,
         'border-color': '#f8fafc',
-      } as cytoscape.NodeSingular['style'],
+      } as any,
     },
   ];
 }

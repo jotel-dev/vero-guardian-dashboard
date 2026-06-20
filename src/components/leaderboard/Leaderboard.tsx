@@ -124,7 +124,7 @@ function getRankClassName(rank: number): string {
   }
 }
 
-function LeaderboardRow({ contributor, t }: { contributor: RankedAuditContributor; t: (key: string) => string }): ReactElement {
+function LeaderboardRow({ contributor, t }: { contributor: RankedAuditContributor; t: (key: string, options?: any) => string }): ReactElement {
   return (
     <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/80">
       <div className="flex items-start gap-3">

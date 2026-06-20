@@ -18,7 +18,8 @@ import LanguageToggle from '@/components/LanguageToggle';
 import NetworkStatus from '@/components/NetworkStatus';
 import PRFeed from '@/components/PRFeed';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
-import SecurityScannerResults from '@/components/security';
+import SecurityScannerResults, { RelayerVault } from '@/components/security';
+import ContractCallGraph from '@/components/ContractCallGraph';
 import TaskCard from '@/components/TaskCard';
 import ThemeToggle from '@/components/ThemeToggle';
 import TransactionFeed from '@/components/TransactionFeed';
@@ -345,6 +346,12 @@ export default function Home(): ReactElement {
                     <TaskCard />
                     <EmergencyHaltButton />
                   </div>
+                </div>
+              </ErrorBoundary>
+
+              <ErrorBoundary>
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-lg mt-6">
+                  <RelayerVault />
                 </div>
               </ErrorBoundary>
             </AccessControl>

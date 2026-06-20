@@ -2,6 +2,7 @@ export { default } from './SecurityScannerResults';
 export { default as SecurityScannerResults, getSecurityScannerSnapshot } from './SecurityScannerResults';
 export { default as VulnerabilityList } from './VulnerabilityList';
 export { default as VulnerabilityWarning } from './VulnerabilityWarning';
+export { default as RelayerVault } from './RelayerVault';
 export {
   normalizeSeverity,
   parseVulnerabilityResults,

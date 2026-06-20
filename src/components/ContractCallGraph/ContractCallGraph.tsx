@@ -209,7 +209,7 @@ export default function ContractCallGraph({
       const cy = cytoscape({
         container: containerRef.current,
         elements,
-        style: stylesheet as cytoscape.Stylesheet[],
+        style: stylesheet as any,
         layout: {
           name: 'breadthfirst',
           directed: true,
