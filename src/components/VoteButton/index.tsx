@@ -133,14 +133,13 @@ export default function VoteButton({ prId, publicKey }: VoteButtonProps): ReactE
       return;
     }
 
-    await submit();
+    const result = await submit();
 
-    // Mirror result into the global toast so the notification is visible
-    // regardless of where on the page the VoteButton sits.
-    if (txState.status === 'success' && txState.txHash) {
-      const explorerUrl = getStellarExplorerTxUrl(txState.txHash);
+    // Mirror into the global toast so it's visible regardless of scroll position.
+    if (result.status === 'success' && result.txHash) {
+      const explorerUrl = getStellarExplorerTxUrl(result.txHash);
       showToast(
-        `${t('vote.toast.recorded')} — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">tx ${txState.txHash.slice(0, 8)}…</a>`,
+        `${t('vote.toast.recorded')} — <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">tx ${result.txHash.slice(0, 8)}…</a>`,
         'success',
       );
     }

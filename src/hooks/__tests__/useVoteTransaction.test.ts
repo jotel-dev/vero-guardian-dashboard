@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useVoteTransaction } from '@/hooks/useVoteTransaction';
+import { useVoteTransaction, type VoteTxState } from '@/hooks/useVoteTransaction';
 import { castVote } from '@/services/contractClient';
 import { appendAuditEvent } from '@/utils/logger';
 
@@ -32,16 +32,18 @@ describe('useVoteTransaction', () => {
     mockCastVote.mockResolvedValue('abc123');
     const { result } = renderHook(() => useVoteTransaction(OPTS));
 
+    let returnedState!: VoteTxState;
     await act(async () => {
-      await result.current.submit();
+      returnedState = await result.current.submit();
     });
 
-    expect(result.current.state).toEqual({
+    expect(returnedState).toEqual({
       status: 'success',
       txHash: 'abc123',
       errorKind: null,
       errorMessage: null,
     });
+    expect(result.current.state).toEqual(returnedState);
     expect(appendAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'vote_submitted', status: 'success' }),
     );
@@ -51,12 +53,14 @@ describe('useVoteTransaction', () => {
     mockCastVote.mockRejectedValue(new Error('Horizon submission failed'));
     const { result } = renderHook(() => useVoteTransaction(OPTS));
 
+    let returnedState!: VoteTxState;
     await act(async () => {
-      await result.current.submit();
+      returnedState = await result.current.submit();
     });
 
-    expect(result.current.state.status).toBe('error');
-    expect(result.current.state.errorKind).toBe('network_error');
+    expect(returnedState.status).toBe('error');
+    expect(returnedState.errorKind).toBe('network_error');
+    expect(result.current.state).toEqual(returnedState);
     expect(appendAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'vote_failed',
@@ -69,12 +73,13 @@ describe('useVoteTransaction', () => {
     mockCastVote.mockRejectedValue(new Error('User declined access'));
     const { result } = renderHook(() => useVoteTransaction(OPTS));
 
+    let returnedState!: VoteTxState;
     await act(async () => {
-      await result.current.submit();
+      returnedState = await result.current.submit();
     });
 
-    expect(result.current.state.status).toBe('error');
-    expect(result.current.state.errorKind).toBe('user_rejected');
+    expect(returnedState.status).toBe('error');
+    expect(returnedState.errorKind).toBe('user_rejected');
   });
 
   it('reset() returns state to idle', async () => {

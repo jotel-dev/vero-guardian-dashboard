@@ -46,7 +46,8 @@ export interface UseVoteTransactionOptions {
 
 export interface UseVoteTransactionResult {
   state: VoteTxState;
-  submit: () => Promise<void>;
+  /** Runs the full vote flow and returns the final state. */
+  submit: () => Promise<VoteTxState>;
   reset: () => void;
 }
 
@@ -64,13 +65,13 @@ export function useVoteTransaction({
 }: UseVoteTransactionOptions): UseVoteTransactionResult {
   const [state, setState] = useState<VoteTxState>(IDLE_STATE);
 
-  const submit = useCallback(async (): Promise<void> => {
+  const submit = useCallback(async (): Promise<VoteTxState> => {
     setState({ status: 'pending', txHash: null, errorKind: null, errorMessage: null });
 
     try {
       const hash = await castVote(prId, publicKey, horizonUrl, networkPassphrase);
-
-      setState({ status: 'success', txHash: hash, errorKind: null, errorMessage: null });
+      const next: VoteTxState = { status: 'success', txHash: hash, errorKind: null, errorMessage: null };
+      setState(next);
 
       void appendAuditEvent({
         id: `vote-${prId}-${hash}`,
@@ -82,11 +83,13 @@ export function useVoteTransaction({
         status: 'success',
         metadata: { transactionHash: hash },
       }).catch((err) => console.error('Unable to append vote audit log', err));
+
+      return next;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Vote failed';
       const errorKind: VoteErrorKind = isUserRejection(message) ? 'user_rejected' : 'network_error';
-
-      setState({ status: 'error', txHash: null, errorKind, errorMessage: message });
+      const next: VoteTxState = { status: 'error', txHash: null, errorKind, errorMessage: message };
+      setState(next);
 
       void appendAuditEvent({
         type: 'guardian.vote',
@@ -97,6 +100,8 @@ export function useVoteTransaction({
         status: 'failure',
         metadata: { error: message, errorKind },
       }).catch((e) => console.error('Unable to append failed vote audit log', e));
+
+      return next;
     }
   }, [prId, publicKey, horizonUrl, networkPassphrase]);
 
